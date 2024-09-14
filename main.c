@@ -3,22 +3,19 @@
 #include <stdio.h>
 
 #include "colors.h"
-#include "opensimplex2s.h"
+#include "open-simplex-noise.h"
 
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
 
-void drawMap() {
+void drawMap(struct osn_context *ctx) {
   glClear(GL_COLOR_BUFFER_BIT);
 
   glBegin(GL_POINTS);
   for (int y = 0; y < WINDOW_HEIGHT; ++y) {
     for (int x = 0; x < WINDOW_WIDTH; ++x) {
-      if (x < WINDOW_WIDTH / 2 && y < WINDOW_HEIGHT / 2) {
-        glColor3f(0.0f, 0.0f, 0.0f);
-      } else {
-        glColor3f(1.0f, 1.0f, 1.0f);
-      }
+      float value = (open_simplex_noise2(ctx, x * 0.01, y * 0.01) + 1) / 2.0f;
+      glColor3f(value, value, value);
       glVertex2i(x, y);
     }
   }
@@ -26,14 +23,15 @@ void drawMap() {
 }
 
 int main() {
-  opensimplex_init();
-  printf("%f", opensimplex2s_noise2(1, 0.1, 0.1));
+  struct osn_context *ctx;
+  open_simplex_noise(1, &ctx);
   if (!glfwInit()) {
     fprintf(stderr, "Failed to initialize GLFW\n");
     return -1;
   }
 
-  GLFWwindow *window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Checkerboard", NULL, NULL);
+  GLFWwindow *window =
+      glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Checkerboard", NULL, NULL);
   if (!window) {
     fprintf(stderr, "Failed to open window\n");
     glfwTerminate();
@@ -44,7 +42,7 @@ int main() {
   glOrtho(0, WINDOW_WIDTH, 0, WINDOW_HEIGHT, -1, 1);
 
   while (!glfwWindowShouldClose(window)) {
-    drawMap();
+    drawMap(ctx);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
@@ -52,6 +50,6 @@ int main() {
 
   glfwDestroyWindow(window);
   glfwTerminate();
-  opensimple_free();
+  open_simplex_noise_free(ctx);
   return 0;
 }
