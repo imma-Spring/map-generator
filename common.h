@@ -12,12 +12,16 @@
                                                 ((float)max1 - (float)min1)))
 #endif // !MAP
 
+#ifndef RAND_IN_RANGE
+#define RAND_IN_RANGE(max, min) ((float)(rand()) / RAND_MAX) * (max - min) + min
+#endif // DEBUG
+
 #ifndef _VARIABLES
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 #define SIZE_MODIFIER 30
 #define N_LAYERS 10
-#define MAX_ITERATIONS 10
+#define MAX_ITERATIONS 100
 #define N_START_POINTS 2
 #define MOVE_SPEED 0.01f
 #define _VARIABLES

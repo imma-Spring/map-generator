@@ -17,7 +17,7 @@ static int closestDist(float x, float y, Vector points[], size_t length) {
   int closestIndex = -1;
   for (size_t i = 0; i < length; ++i) {
     float d = distance(x, y, points[i].x, points[i].y);
-    if (closestDist < d) {
+    if (closestDist > d) {
       closestDist = d;
       closestIndex = i;
     }
@@ -50,8 +50,8 @@ void generateVoronoiNoise(float map[WINDOW_WIDTH][WINDOW_HEIGHT],
       for (int y = y0; y <= yf; ++y) {
         if (distance(x, y, point.x, point.y) > r)
           continue;
-        // if (i != closestDist(x, y, layerPoints, length))
-        //   continue;
+        if (i != closestDist(x, y, layerPoints, length))
+          continue;
         float noiseFactor = open_simplex_noise3(ctx, x * bias_scale + offset.x,
                                                 y * bias_scale + offset.y, i) *
                             1.5;
@@ -109,10 +109,10 @@ void relaxPoints(Vector layerPoints[], const size_t length) {
       newPoints[i].x = layerPoints[i].x;
       newPoints[i].y = layerPoints[i].y;
     }
-    layerPoints[i].x =
-        LERP(layerPoints[i].x, newPoints[i].x, MOVE_SPEED / length);
-    layerPoints[i].y =
-        LERP(layerPoints[i].y, newPoints[i].y, MOVE_SPEED / length);
+    layerPoints[i].x = LERP(layerPoints[i].x + RAND_IN_RANGE(-10, 10),
+                            newPoints[i].x, MOVE_SPEED / length);
+    layerPoints[i].y = LERP(layerPoints[i].y + RAND_IN_RANGE(-10, 10),
+                            newPoints[i].y, MOVE_SPEED / length);
   }
   free(newPoints);
   free(counts);
