@@ -1,13 +1,14 @@
 #include "heightgen.h"
 #include "common.h"
 #include "open-simplex-noise.h"
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-static float function(float x) { return 1.0f / (10.f + x); }
+static float function(float x) { return exp(-(pow(x, 5)));/*return 1.0f / (10.f + x);*/ }
 static void genGradients(Vector **gradients,
                          float heightMap[WINDOW_WIDTH][WINDOW_HEIGHT],
-                         float amplitude, float frequency, Vector offset,
+                         double amplitude, double frequency, Vector offset,
                          struct osn_context *ctx) {
   float delta = (0.00001);
   for (size_t x = 0; x < WINDOW_WIDTH; ++x) {
@@ -17,13 +18,13 @@ static void genGradients(Vector **gradients,
       float p1 = open_simplex_noise2(ctx, newX, newY) * amplitude;
       float px = open_simplex_noise2(ctx, newX + delta, newY) * amplitude;
       float py = open_simplex_noise2(ctx, newX, newY + delta) * amplitude;
-      float dx = px - p1;
-      float dy = py - p1;
+      float dx = (px + amplitude) / 2 - (p1 + amplitude) / 2;
+      float dy = (py + amplitude) / 2 - (p1 + amplitude) / 2;
       gradients[x][y].x += dx / delta;
       gradients[x][y].y += dy / delta;
       float grad = sqrt(gradients[x][y].x * gradients[x][y].x +
                         gradients[x][y].y * gradients[x][y].y);
-      heightMap[x][y] += p1 * grad;
+      heightMap[x][y] += p1 * function(grad);
     }
   }
 }
@@ -54,8 +55,8 @@ void heightMapGen(float heightMap[WINDOW_WIDTH][WINDOW_HEIGHT],
   printf("1\n");
   init_vector_array(&gradients);
   printf("2\n");
-  float amplitude = 1;
-  float frequency = 1;
+  double amplitude = 1;
+  double frequency = 1;
   for (size_t o = 0; o < OCTAVES; ++o) {
     Vector offset = {RAND_IN_RANGE(-10000, 10000),
                      RAND_IN_RANGE(-10000, 10000)};

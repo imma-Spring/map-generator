@@ -143,16 +143,16 @@ int main() {
                                bias_scale, rate);
         }
       }
-      if (currentIteration % 10 == 0) {
+      if (currentIteration % 2 == 0) {
         for (size_t i = 0; i < WINDOW_WIDTH; ++i) {
           for (size_t j = 0; j < WINDOW_HEIGHT; ++j) {
-            map[i][j] += heightMap[i][j];
+            map[i][j] += 10 * heightMap[i][j];
           }
         }
       }
       normalizeMap(map, &min, &max);
       twoDimensionalArrayToOneDimensionalArray(m, map);
-      erode(&erosion, m, 1000);
+      erode(&erosion, m, 10000);
       oneDimensionalArrayToTwoDimensional(m, map);
       for (size_t i = 0; i < WINDOW_WIDTH; ++i) {
         for (size_t j = 0; j < WINDOW_HEIGHT; ++j) {
