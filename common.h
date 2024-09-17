@@ -38,10 +38,13 @@
 #define MAX_ITERATIONS 100
 #define N_START_POINTS 2
 #define MOVE_SPEED 0.01f
+#define OCTAVES 10
+#define PERSISTENCE 0.83f
+#define LACUNARITY 1.23f
+#define SCALE 0.0083f
 #define _VARIABLES
 #endif // !_VARIABLES
 
 typedef struct {
   float x, y, z;
-  float nx, ny, nz;
 } Vector;

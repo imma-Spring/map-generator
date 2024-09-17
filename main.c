@@ -9,6 +9,7 @@
 #include "common.h"
 #include "continent.h"
 #include "erosion.h"
+#include "heightgen.h"
 #include "open-simplex-noise.h"
 
 void normalizeMap(float map[WINDOW_WIDTH][WINDOW_HEIGHT], float *min,
@@ -104,7 +105,6 @@ int main() {
       Vector v;
       v.x = x;
       v.y = y;
-      printf("%f, %f", x, y);
       p[j] = v;
     }
     points[i] = p;
@@ -123,12 +123,14 @@ int main() {
   float map[WINDOW_WIDTH][WINDOW_HEIGHT];
   float tempMap[WINDOW_WIDTH][WINDOW_HEIGHT];
   float m[WINDOW_WIDTH * WINDOW_HEIGHT];
+  float heightMap[WINDOW_WIDTH][WINDOW_HEIGHT];
   for (size_t i = 0; i < WINDOW_WIDTH; ++i) {
     for (size_t j = 0; j < WINDOW_HEIGHT; ++j) {
       map[i][j] = 0;
+      heightMap[i][j] = 0;
     }
   }
-
+  heightMapGen(heightMap, ctx);
   glfwMakeContextCurrent(window);
   glOrtho(0, WINDOW_WIDTH, 0, WINDOW_HEIGHT, -1, 1);
 
@@ -139,6 +141,13 @@ int main() {
           relaxPoints(points[i], N_START_POINTS + i);
           generateVoronoiNoise(map, points[i], i + 1, N_START_POINTS + i, ctx,
                                bias_scale, rate);
+        }
+      }
+      if (currentIteration % 10 == 0) {
+        for (size_t i = 0; i < WINDOW_WIDTH; ++i) {
+          for (size_t j = 0; j < WINDOW_HEIGHT; ++j) {
+            map[i][j] += heightMap[i][j];
+          }
         }
       }
       normalizeMap(map, &min, &max);
