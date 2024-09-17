@@ -1,6 +1,8 @@
 #pragma once
 
 #include <stdlib.h>
+#include <math.h>
+#include <stdbool.h>
 
 #ifndef LERP
 #define LERP(a, b, t) ((a) + ((b - a) * (t)))
@@ -17,6 +19,18 @@
 #endif // DEBUG
 
 #ifndef _VARIABLES
+#define SEED 12
+#define EROSION_RADIUS 3
+#define INERTIA 0.05f
+#define SEDIMENT_CAPACITY_FACTOR 4
+#define MIN_SEDIMENT_CAPACITY 0.01f
+#define ERODE_SPEED 0.3f
+#define DEPOSIT_SPEED 0.3f
+#define EVAPORATE_SPEED 0.01f
+#define GRAVITY 4
+#define MAX_DROPLET_LIFETIME 30
+#define INITIAL_WATER_VOLUME 1.0f
+#define INITAL_SPEED 1.0f
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 #define SIZE_MODIFIER 30

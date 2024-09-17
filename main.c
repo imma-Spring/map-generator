@@ -8,6 +8,7 @@
 #include "colors.h"
 #include "common.h"
 #include "continent.h"
+#include "erosion.h"
 #include "open-simplex-noise.h"
 
 void normalizeMap(float map[WINDOW_WIDTH][WINDOW_HEIGHT], float *min,
@@ -45,8 +46,28 @@ void drawMap(struct osn_context *ctx, float map[WINDOW_WIDTH][WINDOW_HEIGHT]) {
   glEnd();
 }
 
+void oneDimensionalArrayToTwoDimensional(
+    float oneDimensionalArray[WINDOW_WIDTH * WINDOW_HEIGHT],
+    float twoDimensionalArray[WINDOW_WIDTH][WINDOW_HEIGHT]) {
+  for (size_t i = 0; i < WINDOW_WIDTH; ++i) {
+    for (size_t j = 0; j < WINDOW_HEIGHT; ++j) {
+      twoDimensionalArray[i][j] = oneDimensionalArray[i + j * WINDOW_WIDTH];
+    }
+  }
+}
+
+void twoDimensionalArrayToOneDimensionalArray(
+    float oneDimensionalArray[WINDOW_WIDTH * WINDOW_HEIGHT],
+    float twoDimensionalArray[WINDOW_WIDTH][WINDOW_HEIGHT]) {
+  for (size_t i = 0; i < WINDOW_WIDTH; ++i) {
+    for (size_t j = 0; j < WINDOW_HEIGHT; ++j) {
+      oneDimensionalArray[i + j * WINDOW_WIDTH] = twoDimensionalArray[i][j];
+    }
+  }
+}
+
 int main() {
-  srand(time(NULL));
+  srand(SEED);
   if (!glfwInit()) {
     fprintf(stderr, "Failed to initialize GLFW\n");
     return -1;
@@ -94,11 +115,14 @@ int main() {
   float max = FLT_MAX;
   float bias_scale = 0.0001;
   float rate = 1;
+  Erosion erosion;
+  erode_init(&erosion);
   struct osn_context *ctx;
   open_simplex_noise(1, &ctx);
 
   float map[WINDOW_WIDTH][WINDOW_HEIGHT];
   float tempMap[WINDOW_WIDTH][WINDOW_HEIGHT];
+  float m[WINDOW_WIDTH * WINDOW_HEIGHT];
   for (size_t i = 0; i < WINDOW_WIDTH; ++i) {
     for (size_t j = 0; j < WINDOW_HEIGHT; ++j) {
       map[i][j] = 0;
@@ -117,8 +141,17 @@ int main() {
                                bias_scale, rate);
         }
       }
+      normalizeMap(map, &min, &max);
+      twoDimensionalArrayToOneDimensionalArray(m, map);
+      erode(&erosion, m, 1000);
+      oneDimensionalArrayToTwoDimensional(m, map);
+      for (size_t i = 0; i < WINDOW_WIDTH; ++i) {
+        for (size_t j = 0; j < WINDOW_HEIGHT; ++j) {
+          map[i][j] = MAP(map[i][j], 0, 1, min, max);
+        }
+      }
       currentIteration++;
-    printf("%d\n", currentIteration);
+      printf("%d\n", currentIteration);
     }
     for (size_t i = 0; i < WINDOW_WIDTH; ++i) {
       for (size_t j = 0; j < WINDOW_HEIGHT; ++j) {
@@ -139,5 +172,6 @@ int main() {
     free(points[i]);
   }
   free(points);
+  free_erode(&erosion);
   return 0;
 }
