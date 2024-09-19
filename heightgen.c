@@ -5,9 +5,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static float function(float x) { return exp(-(pow(x, 5)));/*return 1.0f / (10.f + x);*/ }
-static void genGradients(Vector **gradients,
-                         float heightMap[WINDOW_WIDTH][WINDOW_HEIGHT],
+static float function(float x) {
+  return exp(-(pow(x, 5))); /*return 1.0f / (10.f + x);*/
+}
+static void genGradients(Vector **gradients, float **heightMap,
                          double amplitude, double frequency, Vector offset,
                          struct osn_context *ctx) {
   float delta = (0.00001);
@@ -24,7 +25,7 @@ static void genGradients(Vector **gradients,
       gradients[x][y].y += dy / delta;
       float grad = sqrt(gradients[x][y].x * gradients[x][y].x +
                         gradients[x][y].y * gradients[x][y].y);
-      heightMap[x][y] += p1 * function(grad);
+      (heightMap)[x][y] += p1 * function(grad);
     }
   }
 }
@@ -48,8 +49,7 @@ static void init_vector_array(Vector ***arr) {
   }
 }
 
-void heightMapGen(float heightMap[WINDOW_WIDTH][WINDOW_HEIGHT],
-                  struct osn_context *ctx) {
+void heightMapGen(float **heightMap, struct osn_context *ctx) {
   printf("0\n");
   Vector **gradients;
   printf("1\n");

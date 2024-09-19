@@ -9,5 +9,4 @@ typedef struct {
 
 void erode_init(Erosion *erosion);
 void free_erode(Erosion *erosion);
-void erode(Erosion *erosion, float map[WINDOW_WIDTH * WINDOW_HEIGHT],
-           int numIteration);
+void erode(Erosion *erosion, float *map, int numIteration, float sealevel);

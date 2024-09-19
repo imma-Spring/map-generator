@@ -1,4 +1,6 @@
 #include "colors.h"
+#include "common.h"
+#include <stdlib.h>
 
 Color colors[31];
 
@@ -42,4 +44,36 @@ Color color(int r, int g, int b) {
   color.g = g / 255.0f;
   color.b = b / 255.0f;
   return color;
+}
+
+void initializeHeight(float **heights) {
+  size_t length = 31;
+  *heights = (float *)calloc(length, sizeof(float));
+  for (size_t i = 0; i < length; i++) {
+    (*heights)[i] = (float)(i) / (length);
+  }
+}
+
+static size_t getIndex(float *heights, float value) {
+  size_t length = (sizeof(&heights) / sizeof(float));
+  for (size_t i = 0; i < 31; ++i) {
+    if (value >= heights[i] && (i == 30 || value < heights[i + 1])) {
+      return i;
+    }
+  }
+  return 30;
+}
+
+Color getColor(float *heights, float value, float sealevel) {
+  if (value < sealevel) {
+    value = MAP(value, 0, sealevel, -1, 0);
+  } else {
+    value = MAP(value, sealevel, 1, 0, 1);
+  }
+  if (value < 0) {
+    Color rgb = color(0, 0, 255);
+    return rgb;
+  }
+  Color c = colors[getIndex(heights, value)];
+  return c;
 }

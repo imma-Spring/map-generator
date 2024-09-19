@@ -12,8 +12,7 @@
 #include "heightgen.h"
 #include "open-simplex-noise.h"
 
-void normalizeMap(float map[WINDOW_WIDTH][WINDOW_HEIGHT], float *min,
-                  float *max) {
+void normalizeMap(float **map, float *min, float *max) {
   *min = FLT_MAX;
   *max = -FLT_MAX;
 
@@ -33,23 +32,57 @@ void normalizeMap(float map[WINDOW_WIDTH][WINDOW_HEIGHT], float *min,
   }
 }
 
-void drawMap(struct osn_context *ctx, float map[WINDOW_WIDTH][WINDOW_HEIGHT]) {
+float getSealevel(float **map) {
+  float lowerBound = 0;
+  float upperBound = 1.0f;
+  float sealevel = 0;
+  int totalCells = WINDOW_WIDTH * WINDOW_HEIGHT;
+  while (upperBound - lowerBound > 0.001f) {
+    sealevel = (lowerBound + upperBound) / 2.0f;
+    int n = 0;
+
+    for (size_t i = 0; i < WINDOW_WIDTH; ++i) {
+      bool skip = false;
+      for (size_t j = 0; j < WINDOW_HEIGHT; ++j) {
+        if (map[i][j] < sealevel) {
+          n++;
+        }
+      }
+    }
+    float percentage = (float)(n) / totalCells;
+
+    printf("Sealevel: %.3f, Percentage: %.3f, n: %d, lowerBound: %.3f, "
+           "upperBound: %.3f\n",
+           sealevel, percentage, n, lowerBound, upperBound);
+
+    if (percentage < WATER_THRESHOLD) {
+      lowerBound = sealevel;
+    } else {
+      upperBound = sealevel;
+    }
+  }
+
+  return sealevel;
+}
+
+void drawMap(struct osn_context *ctx, float **map, float *heights,
+             float sealevel) {
   glClear(GL_COLOR_BUFFER_BIT);
 
   glBegin(GL_POINTS);
   for (int y = 0; y < WINDOW_HEIGHT; ++y) {
     for (int x = 0; x < WINDOW_WIDTH; ++x) {
       float value = map[x][y];
-      glColor3f(value, value, value);
+      Color rgb = getColor(heights, value, sealevel);
+      glColor3f(rgb.r, rgb.g, rgb.b);
       glVertex2i(x, y);
     }
   }
   glEnd();
 }
 
-void oneDimensionalArrayToTwoDimensional(
-    float oneDimensionalArray[WINDOW_WIDTH * WINDOW_HEIGHT],
-    float twoDimensionalArray[WINDOW_WIDTH][WINDOW_HEIGHT]) {
+void oneDimensionalArrayToTwoDimensional(float *oneDimensionalArray,
+                                         float **twoDimensionalArray) {
   for (size_t i = 0; i < WINDOW_WIDTH; ++i) {
     for (size_t j = 0; j < WINDOW_HEIGHT; ++j) {
       twoDimensionalArray[i][j] = oneDimensionalArray[i + j * WINDOW_WIDTH];
@@ -57,14 +90,37 @@ void oneDimensionalArrayToTwoDimensional(
   }
 }
 
-void twoDimensionalArrayToOneDimensionalArray(
-    float oneDimensionalArray[WINDOW_WIDTH * WINDOW_HEIGHT],
-    float twoDimensionalArray[WINDOW_WIDTH][WINDOW_HEIGHT]) {
+void twoDimensionalArrayToOneDimensionalArray(float *oneDimensionalArray,
+                                              float **twoDimensionalArray) {
   for (size_t i = 0; i < WINDOW_WIDTH; ++i) {
     for (size_t j = 0; j < WINDOW_HEIGHT; ++j) {
       oneDimensionalArray[i + j * WINDOW_WIDTH] = twoDimensionalArray[i][j];
     }
   }
+}
+
+float *init1DArray(size_t size) {
+  float *array = (float *)calloc(size, sizeof(float));
+  for (size_t i = 0; i < size; ++i) {
+    array[i] = 0;
+  }
+  return array;
+}
+
+float **init2DArray() {
+  float **array =
+      (float **)calloc(WINDOW_WIDTH * WINDOW_HEIGHT, sizeof(float *));
+  for (size_t i = 0; i < WINDOW_WIDTH; ++i) {
+    array[i] = init1DArray(WINDOW_HEIGHT);
+  }
+  return array;
+}
+
+void free2DArray(float **array) {
+  for (size_t i = 0; i < WINDOW_WIDTH; ++i) {
+    free(array[i]);
+  }
+  free(array);
 }
 
 int main() {
@@ -115,15 +171,21 @@ int main() {
   float max = FLT_MAX;
   float bias_scale = 0.0001;
   float rate = 1;
+  float sealevel = 0.5;
   Erosion erosion;
+
   erode_init(&erosion);
   struct osn_context *ctx;
-  open_simplex_noise(1, &ctx);
+  open_simplex_noise(SEED, &ctx);
 
-  float map[WINDOW_WIDTH][WINDOW_HEIGHT];
-  float tempMap[WINDOW_WIDTH][WINDOW_HEIGHT];
-  float m[WINDOW_WIDTH * WINDOW_HEIGHT];
-  float heightMap[WINDOW_WIDTH][WINDOW_HEIGHT];
+  float **map = init2DArray();
+  float **tempMap = init2DArray();
+  float **heightMap = init2DArray();
+  float *m = init1DArray(WINDOW_WIDTH * WINDOW_HEIGHT);
+  float *heights;
+  initializeHeight(&heights);
+  addColors();
+
   for (size_t i = 0; i < WINDOW_WIDTH; ++i) {
     for (size_t j = 0; j < WINDOW_HEIGHT; ++j) {
       map[i][j] = 0;
@@ -143,7 +205,7 @@ int main() {
                                bias_scale, rate);
         }
       }
-      if (currentIteration % 2 == 0) {
+      if (true) {
         for (size_t i = 0; i < WINDOW_WIDTH; ++i) {
           for (size_t j = 0; j < WINDOW_HEIGHT; ++j) {
             map[i][j] += 10 * heightMap[i][j];
@@ -152,7 +214,7 @@ int main() {
       }
       normalizeMap(map, &min, &max);
       twoDimensionalArrayToOneDimensionalArray(m, map);
-      erode(&erosion, m, 10000);
+      erode(&erosion, m, 200000, sealevel);
       oneDimensionalArrayToTwoDimensional(m, map);
       for (size_t i = 0; i < WINDOW_WIDTH; ++i) {
         for (size_t j = 0; j < WINDOW_HEIGHT; ++j) {
@@ -161,6 +223,17 @@ int main() {
       }
       currentIteration++;
       printf("%d\n", currentIteration);
+    } else if (currentIteration == MAX_ITERATIONS) {
+      normalizeMap(map, &min, &max);
+      twoDimensionalArrayToOneDimensionalArray(m, map);
+      erode(&erosion, m, 2000000, sealevel);
+      oneDimensionalArrayToTwoDimensional(m, map);
+      for (size_t i = 0; i < WINDOW_WIDTH; ++i) {
+        for (size_t j = 0; j < WINDOW_HEIGHT; ++j) {
+          map[i][j] = MAP(map[i][j], 0, 1, min, max);
+        }
+      }
+      currentIteration++;
     }
     for (size_t i = 0; i < WINDOW_WIDTH; ++i) {
       for (size_t j = 0; j < WINDOW_HEIGHT; ++j) {
@@ -168,7 +241,11 @@ int main() {
       }
     }
     normalizeMap(tempMap, &max, &min);
-    drawMap(ctx, tempMap);
+    if (currentIteration % 10 == 0) {
+      sealevel = getSealevel(tempMap);
+      printf("%f\n", sealevel);
+    }
+    drawMap(ctx, tempMap, heights, sealevel);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
@@ -180,7 +257,12 @@ int main() {
   for (size_t i = 0; i < N_LAYERS; ++i) {
     free(points[i]);
   }
+  free(heights);
   free(points);
   free_erode(&erosion);
+  free2DArray(map);
+  free2DArray(tempMap);
+  free2DArray(heightMap);
+  free(m);
   return 0;
 }

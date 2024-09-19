@@ -86,9 +86,8 @@ void free_erode(Erosion *erosion) {
   free(erosion->lengths);
 }
 
-static HeightAndGradient
-calculateHeightAndGradient(float map[WINDOW_WIDTH * WINDOW_HEIGHT], float posX,
-                           float posY) {
+static HeightAndGradient calculateHeightAndGradient(float *map, float posX,
+                                                    float posY) {
   int cordX = (int)posX;
   int cordY = (int)posY;
 
@@ -111,12 +110,23 @@ calculateHeightAndGradient(float map[WINDOW_WIDTH * WINDOW_HEIGHT], float posX,
   return result;
 }
 
-void erode(Erosion *erosion, float map[WINDOW_WIDTH * WINDOW_HEIGHT],
-           int numIterations) {
-
+void erode(Erosion *erosion, float *map, int numIterations, float sealevel) {
+  int c = numIterations + 1;
+  if (numIterations >= 100) {
+    c = (int)numIterations / 100;
+  }
   for (size_t iteration = 0; iteration < numIterations; ++iteration) {
+    if (iteration % c == 0) {
+      printf("%zu\n", iteration);
+    }
     float posX = RAND_IN_RANGE(0, WINDOW_WIDTH - 1);
     float posY = RAND_IN_RANGE(0, WINDOW_HEIGHT - 1);
+    while (posX < 0 || posY < 0 ||
+           (map[(int)posX + (int)posY * WINDOW_WIDTH] < sealevel &&
+            rand() % 2 == 0)) {
+      posX = RAND_IN_RANGE(0, WINDOW_WIDTH - 1);
+      posY = RAND_IN_RANGE(0, WINDOW_HEIGHT - 1);
+    }
     float dirX = 0, dirY = 0;
     float speed = INITAL_SPEED;
     float water = INITIAL_WATER_VOLUME;
@@ -128,7 +138,6 @@ void erode(Erosion *erosion, float map[WINDOW_WIDTH * WINDOW_HEIGHT],
 
       float cellOffsetX = posX - nodeX;
       float cellOffsetY = posY - nodeY;
-
       HeightAndGradient heightAndGradient =
           calculateHeightAndGradient(map, posX, posY);
 
@@ -147,7 +156,6 @@ void erode(Erosion *erosion, float map[WINDOW_WIDTH * WINDOW_HEIGHT],
           posY < 0 || posY >= WINDOW_HEIGHT - 1) {
         break;
       }
-
       float newHeight = calculateHeightAndGradient(map, posX, posY).height;
       float deltaHeight = newHeight - heightAndGradient.height;
 
@@ -160,29 +168,29 @@ void erode(Erosion *erosion, float map[WINDOW_WIDTH * WINDOW_HEIGHT],
             (deltaHeight > 0) ? MIN(deltaHeight, sediment)
                               : (sediment - sedimentCapcity) * DEPOSIT_SPEED;
         sediment -= amountToDeposit;
-        map[dropletIndex] +=
+        (map)[dropletIndex] +=
             amountToDeposit * (1 - cellOffsetX) * (1 - cellOffsetY);
-        map[dropletIndex + 1] +=
+        (map)[dropletIndex + 1] +=
             amountToDeposit * cellOffsetX * (1 - cellOffsetY);
-        map[dropletIndex + WINDOW_WIDTH] +=
+        (map)[dropletIndex + WINDOW_WIDTH] +=
             amountToDeposit * (1 - cellOffsetX) * cellOffsetY;
-        map[dropletIndex + WINDOW_WIDTH + 1] +=
+        (map)[dropletIndex + WINDOW_WIDTH + 1] +=
             amountToDeposit * cellOffsetX * cellOffsetY;
       } else {
         float amountToErode =
             MIN((sedimentCapcity - sediment) * ERODE_SPEED, -deltaHeight);
         for (size_t brushPointIndex = 0;
              brushPointIndex < erosion->lengths[dropletIndex];
-             brushPointIndex++) {
+             ++brushPointIndex) {
           int nodeIndex =
               erosion->erosionBrushIndicies[dropletIndex][brushPointIndex];
           float weightErodeAmount =
               amountToErode *
               erosion->erosionBrushWeights[dropletIndex][brushPointIndex];
-          float deltaSediment = (map[nodeIndex] < weightErodeAmount)
-                                    ? map[nodeIndex]
+          float deltaSediment = ((map)[nodeIndex] < weightErodeAmount)
+                                    ? (map)[nodeIndex]
                                     : weightErodeAmount;
-          map[nodeIndex] -= deltaSediment;
+          (map)[nodeIndex] -= deltaSediment;
           sediment += deltaSediment;
         }
       }

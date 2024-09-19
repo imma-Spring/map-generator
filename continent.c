@@ -29,12 +29,11 @@ static float max(float a, float b) { return a >= b ? a : b; }
 
 static float min(float a, float b) { return a <= b ? a : b; }
 
-void generateVoronoiNoise(float map[WINDOW_WIDTH][WINDOW_HEIGHT],
-                          Vector layerPoints[], const float index,
+void generateVoronoiNoise(float **map, Vector layerPoints[], const float index,
                           const size_t length, struct osn_context *ctx,
                           const float bias_scale, const float rate) {
-  printf("generateVoronoiNoise called for index: %f, length: %zu\n", index,
-         length);
+  // printf("generateVoronoiNoise called for index: %f, length: %zu\n", index,
+  //        length);
   Vector offset;
   offset.x = (((float)(rand()) / RAND_MAX) * 20000) - 10000;
   offset.y = (((float)(rand()) / RAND_MAX) * 20000) - 10000;
@@ -57,7 +56,7 @@ void generateVoronoiNoise(float map[WINDOW_WIDTH][WINDOW_HEIGHT],
                             1.5;
         float inverDistanceValue =
             (r == 0) ? 0 : r - distance(x, y, point.x, point.y) / r;
-        map[x][y] += ((inverDistanceValue + noiseFactor) * rate);
+        (map)[x][y] += ((inverDistanceValue + noiseFactor) * rate);
       }
     }
   }
